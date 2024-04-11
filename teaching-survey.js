@@ -175,6 +175,7 @@ function createNewForm(data,FolderId){
     function createScaleQuestion(form, title) {
       var item = form.addMultipleChoiceItem();
       item.setTitle(title).setChoiceValues(["非常同意", "同意", "普通", "不同意", "非常不同意"]);
+      item.setRequired(true)
     }
     // 在指定的文件夾中建立一個新的Google表單
     var folder = DriveApp.getFolderById(folderId);
@@ -246,9 +247,16 @@ function createAllClass(data){
  * 
  * 所有課數：data[0].length
  */
-function createWordandForm(folderId,data){
-  let urls = []
-  for (let i = 0;i <= data[0].length ; i++){
+function createForm(step,folderId,data){
+  let urls = [] ; let num , end
+  // 由於有函數執行上限，設為兩個step
+  if (step == 1){
+    num = 0 ; end = data[0].length/2
+  }
+  else if (step == 2){
+    num = data[0].length/2+1 ; end = data[0].length-1
+  }
+  for ( let i = num ; i <= end ; i++){
 
     tmp_data = [data[0][i],data[2][i],data[1][i],data[4][i]]
     let url = createNewForm(tmp_data,folderId)
@@ -256,9 +264,9 @@ function createWordandForm(folderId,data){
   }
   Logger.log("表單建置完畢!") ; Logger.log("開始QrCode生成")
 
-  let doc = DocumentApp.create('授課意見QrCode');
-  var body = doc.getBody();
-  for (let i = 0 ; i <= data[0].length ; i++){
+  let doc = DocumentApp.create('授課意見QrCode_'+step);
+  var body = doc.getBody(); let urlnum = 0
+  for (let i = num ; i <= end ; i++){
     var course = data[4][i]+"_"+data[0][i]+"_"+data[1][i];
     if (i > 1) { 
       body.appendPageBreak();
@@ -267,28 +275,30 @@ function createWordandForm(folderId,data){
     body.appendParagraph(data[2][i]).setHeading(DocumentApp.ParagraphHeading.HEADING2) 
     try{
     //第一個生成QrCode的服務
-    var imageUrl = "https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=" + encodeURIComponent(urls[i]);
+    var imageUrl = "https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=" + encodeURIComponent(urls[urlnum]);
     var imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
     }catch{
       //第二個外部套件的生成服務  
-      var imageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=" + encodeURIComponent(urls[i]);
+      var imageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=" + encodeURIComponent(urls[urlnum]);
       var imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
     }
-    
-
+    urlnum = urlnum + 1
     body.appendImage(imageBlob);
     
   }
   DriveApp.getFileById(doc.getId()).moveTo(DriveApp.getFolderById(folderId))
+  
 }
 
 
 /**主執行
  * 邏輯流程：建立新學年度資料夾 -> 讀取課程資料 -> 建立表單 -> 建立試算表 
+ * 基於GoogleBot只有6分鐘的處理時間，所以分成兩步驟進行生成
  */
 function init(){
   try{
-  var year = "112(2)"
+    
+  var year = "112(2)" ; step = 2
   Logger.log("開始")
   folderId = createParentFolder("系上表單及文件",year)
   Logger.log("讀取課程資料")
@@ -296,8 +306,9 @@ function init(){
   Logger.log("讀取成功，開始建置表單")
   data = createAllClass(data)
   Logger.log("開始建置表單")
-  createWordandForm(folderId[2],data)
+  createForm(step,folderId[2],data)
   Logger.log("結束，授課意見調查整體生成完畢")
+
   }catch(error){
     throw Error("shit!出問題摟，錯誤訊息是"+error)
   }
