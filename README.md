@@ -1,4 +1,4 @@
-# nkusticsa_forOffice 高科大智商系系辦公用程式碼
+# nkusticsa_forOffice 高科大智商系系辦公用程式碼_Google App Script
 
 俊陽老師曾經講過....科技始於人性，自從授課意見調查改為線上後，拼拼決定在我打工期間添加一些好用的程式碼給學弟妹們用!
 
