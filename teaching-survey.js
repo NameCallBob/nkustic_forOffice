@@ -3,15 +3,39 @@
  * All rights reserved.
  * 
  * Created by: 彬彬
- * Contact: C110156220@nkust.edu.tw/robin92062574@gmail.com
+ * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
  */
 
 
 //以下其設計邏輯，參考郭粟閣/林祜緻之原先著作，將其原代碼進行優化及註解
 
+// 授課意見調查表之路徑設計為
+// / -> /系上表單及文件 -> /授課意見調查表 -> /新增的新學年授課意見調查表
+
+// 若要修改其路徑，請詢問彬彬或相關維護人員
+
+// 1.使用前請先確保你有去學校取得所有智慧商務系課程
+// 並儲存於/系上表單及文件/授課意見調查表/課程統整(Google試算表)
+// 之後先進行資料的初步處理，將不相關課程進行刪除。
+
+// 筆記:何謂不相關課程:
+// 實用英文(一、二、三、四)、中文閱讀與表達、資料分析套裝軟體、體育(一、二)。
+
+// 2.修改 init的變數 year是哪個學年哪個學期(113(1)或是115(2))
+// 以及依照情況分成幾個step
+// (1,2一定可以跑，但你改更大之後出錯請通知彬彬或相關維護人員)
+
+// 3.點選上方的執行並且選擇init
+
+// 註:如果你不小心動到了程式碼還不會跑，以下是原代碼的github
+// https://github.com/NameCallBob/nkusticsa_forOffice
+
+
 /**
  * 建立授課意見調查表之資料表
- * return array 值如下
+ * return {Array} 
+ * 
+ * 值如下
  * [
  * 系上表單及文件的資料夾ID,
  * 授課意見調查表的資料夾ID,
@@ -50,9 +74,11 @@ function createParentFolder(parentFolderName="系上表單及文件",schoolyear)
 
 /**
  * 得取所有課程名稱(需人工審核該課程是否需建立授課意見調查，例如:體育不用)
- * 檔案位置:/授課意見調查表/課程統整
- * @ParentFolderId -> 授課意見調查表的資料夾ID
- * return Array
+ * 檔案位置:/系上表單及文件/授課意見調查表/課程統整(試算表)
+ * 
+ * @param {String} ParentFolderId 授課意見調查表的資料夾ID
+ * 
+ * return Array 
  */
 function getClassName(ParentFolderId){
 
@@ -111,8 +137,9 @@ function getClassName(ParentFolderId){
     var file = DriveApp.getFileById(newSpreadsheet.getId());
     file.moveTo(folder)
     Logger.log("試算表已建立，請去校務系統統整本學期的課表");
-    Logger.log("試算表位置：/系上表單及文件／課程統整（試算表）")
+    Logger.log("試算表位置：/系上表單及文件／授課意見調查表/課程統整（試算表）")
     Logger.log("資料新增後請移至授課意見調查表（資料夾）")
+    Logger.log("若發現該資料在/系上表單及文件，請協助移到授課意見調查表")
     throw  Error("終止運行")
     return false;
   }
@@ -123,8 +150,8 @@ function getClassName(ParentFolderId){
 /**
  * 確認並建立表單的放置地點，若已存在則只放置學年資料夾
  * 
- * @yearfolderName -> 學年資料夾
- * return 資料夾ID
+ * @param {String} yearfolderName -> 學年資料夾
+ * return {String} 資料夾ID
  */
 function createFolders(yearfolderName) {
   let 
@@ -165,9 +192,9 @@ function createFolders(yearfolderName) {
 
 /**
  * 建立問卷
- * @data -> 課程名稱
- * data = ["課程名稱","授課班級","授課老師","課程編號"]
- * @FolderId -> 放置資料夾ID
+ * @param {String} data -> 課程名稱
+ * @param {String} FolderId -> 放置資料夾ID
+ * 變數 data 為 ["課程名稱","授課班級","授課老師","課程編號"]
  */
 function createNewForm(data,FolderId){
     // 指定Google雲端硬碟位置的文件夾ID
@@ -207,9 +234,9 @@ function createNewForm(data,FolderId){
 
 /** 
  * 建立所有課程的表單資料
- * @params data -> array
+ * @params {Array} data 
  * data = [開課班級,合開課程班級,課程名稱,開課地點,開課導師]
- * return Array -> [className,classTeacher,classWho,classLoc,classId]
+ * return {Array} 如 [className,classTeacher,classWho,classLoc,classId]
  */
 function createAllClass(data){
   // 資料處理
@@ -256,21 +283,23 @@ function createForm(step,folderId,data){
   else if (step == 2){
     num = data[0].length/2+1 ; end = data[0].length-1
   }
+  // 執行表單生成並儲存表單連結
   for ( let i = num ; i <= end ; i++){
-
     tmp_data = [data[0][i],data[2][i],data[1][i],data[4][i]]
     let url = createNewForm(tmp_data,folderId)
     urls.push(url)
   }
-  Logger.log("表單建置完畢!") ; Logger.log("開始QrCode生成")
+  Logger.log("表單建置完畢!開始QrCode生成");
 
   let doc = DocumentApp.create('授課意見QrCode_'+step);
   var body = doc.getBody(); let urlnum = 0
+
   for (let i = num ; i <= end ; i++){
     var course = data[4][i]+"_"+data[0][i]+"_"+data[1][i];
     if (i > 1) { 
       body.appendPageBreak();
     }
+    // Word內容
     body.appendParagraph(course).setHeading(DocumentApp.ParagraphHeading.HEADING1);   
     body.appendParagraph(data[2][i]).setHeading(DocumentApp.ParagraphHeading.HEADING2) 
     try{
@@ -282,9 +311,8 @@ function createForm(step,folderId,data){
       var imageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=" + encodeURIComponent(urls[urlnum]);
       var imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
     }
-    urlnum = urlnum + 1
     body.appendImage(imageBlob);
-    
+    urlnum = urlnum + 1
   }
   DriveApp.getFileById(doc.getId()).moveTo(DriveApp.getFolderById(folderId))
   
@@ -292,13 +320,12 @@ function createForm(step,folderId,data){
 
 
 /**主執行
- * 邏輯流程：建立新學年度資料夾 -> 讀取課程資料 -> 建立表單 -> 建立試算表 
+ * 邏輯流程：建立新學年度資料夾 -> 讀取課程資料 -> 建立表單 -> 建立Word 
  * 基於GoogleBot只有6分鐘的處理時間，所以分成兩步驟進行生成
  */
 function init(){
   try{
-    
-  var year = "112(2)" ; step = 2
+  var year = "113(1)" ; step = 2
   Logger.log("開始")
   folderId = createParentFolder("系上表單及文件",year)
   Logger.log("讀取課程資料")
