@@ -13,6 +13,9 @@
 
 // 若出現程式碼邏輯問題，請聯絡彬彬或其他維護人員。
 
+// 若你不小心動到程式碼，他不會跑了!
+// 程式碼連結:https://github.com/NameCallBob/nkusticsa_forOffice/blob/main/create_teacher_lessonUrl.js
+
 /**
  * 鎖定資料夾位置
  * 
@@ -363,9 +366,11 @@ function arrange_all_data(all_formId,targetFolder){
  * 
  * return null  
  */
-function output_AS_Word(result_info,formFolderId){
+function output_AS_Word(result_info,formFolderId,output_type){
   /**
-   * 在目標文件夾中建立文件
+   * 在目標文件夾中建立老師個別文件
+   * 其中含有老師上課的表單連結及內容
+   * 用doc進行儲存
    * 
    * @param {Array} content - 該位老師的授課資訊
    * @param {String} targetFolderId - 目標資料夾的ID
@@ -426,16 +431,90 @@ function output_AS_Word(result_info,formFolderId){
     Logger.log('文件已建立：' + url);
   }
 
+  /**
+   * 功能與createDocument相同
+   * 只是將所有內容再一個Google文件中!
+   * 
+   * @param {Array} data - 所有老師的授課資訊
+   * @param {String} targetFolderId - 目標資料夾ID
+   */
+  function createDocumentforAll(content,targetFolderId) {
+    let doc = DocumentApp.create('所有老師_授課意見調查表_表單連結');
+    var body = doc.getBody();
+    
+    for (let ii = 0 ; ii < content.length ; ii++){
+      // 插入標題(大標題註記是誰)
+      body.appendParagraph(content[ii][0] +'老師_表單連結')
+          .setHeading(DocumentApp.ParagraphHeading.HEADING1);
+
+      for (let i = 0 ; i < content[ii][1].length ; i++){
+
+        // 插入標題(教室)
+        body.appendParagraph(content[ii][1][i][0])
+          .setHeading(DocumentApp.ParagraphHeading.HEADING2)
+          .setAlignment(DocumentApp.HorizontalAlignment.CENTER)
+          .setUnderline(true);
+
+        // 插入表格
+        let table = body.appendTable();
+
+        // 資料
+        let data = content[ii][1][i][1];
+
+        // 表格標題
+        let tableHeaderRow = table.appendTableRow();
+        tableHeaderRow.appendTableCell("授課班級")
+        tableHeaderRow.appendTableCell("課程名稱")
+        tableHeaderRow.appendTableCell("表單連結")
+
+        // 插入資料到表格
+        for (let i = 0; i < data.length; i++) {
+          let row = table.appendTableRow();
+          for (let j = 0 ; j < data[i].length ; j++){
+            row.appendTableCell(data[i][j]);
+          }
+        }
+      }    
+    }
+    
+    // 確保內容已經儲存過後進行位置轉移
+    doc.saveAndClose()
+
+    // 取得文件連結
+    let url = doc.getUrl();
+    let docId = doc.getId();
+
+    // 將文件存在特定位置
+    let targetFolder = DriveApp.getFolderById(targetFolderId);
+    let newDocFile = DriveApp.getFileById(docId);
+
+    targetFolder.addFile(newDocFile);
+    DriveApp.getRootFolder().removeFile(newDocFile);
+
+    Logger.log(content[0]+"老師")
+    Logger.log('文件已建立：' + url);
+  }  
+  
   // 先確保有沒有資料夾存放這些文件
   let parentFolder = DriveApp.getFolderById(formFolderId);
   if (!parentFolder.getFoldersByName("老師們的表單連結").hasNext()){
     parentFolder.createFolder("老師們的表單連結")
     Logger.log("偵測到無資料夾，已建立「老師們的表單連結」")
     }
+
   var targetFolderId = parentFolder.getFoldersByName("老師們的表單連結").next().getId()
-  for (let i = 0 ; i < result_info.length ; i++){
-    createDocument(result_info[i],targetFolderId)
+  // 跑個別
+  if (output_type == "individual" | output_type == "both"){
+    for (let i = 0 ; i < result_info.length ; i++){
+        createDocument(result_info[i],targetFolderId)
+      }
+    if(output_type == "individual"){
+      return;
+    }
   }
+  // 跑all
+  createDocumentforAll(result_info,targetFolderId)
+  
   
 }
 
@@ -445,8 +524,15 @@ function output_AS_Word(result_info,formFolderId){
  */
 function init(){
 
-  // 填寫學年和學期
+  // 填寫學年和學期 (您要修改的地方!)
   let schoolyear = "112(2)"
+
+  // 要輸出個別老師還是全部? (您要修改的地方!)
+  // 個別老師 -> "individual"
+  // 全部    -> "all"
+  // 兩者的檔案都需要 -> "both"
+
+  let output_type = "all"
 
   // 先取得該學年或學期的授課意見調查表的位置
   let targetFolderId = getFolderloc(
@@ -461,7 +547,9 @@ function init(){
   let result_info = arrange_all_data(all_formid);
 
   // 輸出為Word並放在授課意見調查表該資料夾下的一個資料夾
-  output_AS_Word(result_info,targetFolderId);
+  output_AS_Word(
+    result_info,targetFolderId,output_type
+  );
 
-  Logger.log("執行結束，可去資料夾看是否有所有老師的表單，審核後可寄出")
+  Logger.log("執行結束，可去資料夾名為「老師們的表單連結」，看是否有Google文件，審核後可寄出")
 }
