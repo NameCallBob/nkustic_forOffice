@@ -76,7 +76,7 @@ function createParentFolder(parentFolderName="系上表單及文件",schoolyear)
  * 得取所有課程名稱(需人工審核該課程是否需建立授課意見調查，例如:體育不用)
  * 檔案位置:/系上表單及文件/授課意見調查表/課程統整(試算表)
  * 
- * @param {String} ParentFolderId 授課意見調查表的資料夾ID
+ * @param {String} ParentFolderId - 授課意見調查表的資料夾ID
  * 
  * return Array 
  */
@@ -141,7 +141,7 @@ function getClassName(ParentFolderId){
     Logger.log("資料新增後請移至授課意見調查表（資料夾）")
     Logger.log("若發現該資料在/系上表單及文件，請協助移到授課意見調查表")
     throw  Error("終止運行")
-    return false;
+
   }
 
  
@@ -150,8 +150,8 @@ function getClassName(ParentFolderId){
 /**
  * 確認並建立表單的放置地點，若已存在則只放置學年資料夾
  * 
- * @param {String} yearfolderName -> 學年資料夾
- * return {String} 資料夾ID
+ * @param {String} yearfolderName  -  學年資料夾
+ * return {String}  -  資料夾ID
  */
 function createFolders(yearfolderName) {
   let 
@@ -192,21 +192,41 @@ function createFolders(yearfolderName) {
 
 /**
  * 建立問卷
- * @param {String} data -> 課程名稱
- * @param {String} FolderId -> 放置資料夾ID
- * 變數 data 為 ["課程名稱","授課班級","授課老師","課程編號"]
+ * @param {String} data  -  課程名稱
+ * @param {String} FolderId - 放置資料夾ID
+ * 變數 data 為 ["課程名稱","授課班級","授課老師","課程編號","授課地點"]
  */
 function createNewForm(data,FolderId){
     // 指定Google雲端硬碟位置的文件夾ID
     var folderId = FolderId;
+
+
+    /**
+     * (重複使用)
+     *  在Google表單中創建五分量表之選項
+     * @param {} form  - Google表單之物件
+     * @param {String} title - 題目名稱
+     */
     function createScaleQuestion(form, title) {
       var item = form.addMultipleChoiceItem();
       item.setTitle(title).setChoiceValues(["非常同意", "同意", "普通", "不同意", "非常不同意"]);
       item.setRequired(true)
     }
+
+
     // 在指定的文件夾中建立一個新的Google表單
     var folder = DriveApp.getFolderById(folderId);
-    let descrip = "同學好!\n為增進良好的教學體驗，請填寫教學意見調查表!提供您對於本堂課的想法。\n課程編號："+data[3]+"\n課程名稱："+data[0]+"\n授課班級："+data[1]+"\n授課老師："+data[2]+"\n\n如有任何有關問卷上的問題，請洽智商系系辦!"
+    // 自定義表單簡介
+    let descrip = "同學您好!\n為增進良好的教學體驗，請填寫教學意見調查表!\
+                  提供您對於本堂課的想法，請如實填寫且避免攻擊性詞語，\
+                  \n感謝您的填寫，以下是該堂課的基本資訊。\
+                  \n授課地點："+data[4]+"\
+                  \n課程編號："+data[3]+"\
+                  \n課程名稱："+data[0]+"\
+                  \n授課班級："+data[1]+"\
+                  \n授課老師："+data[2]+"\
+                  \n\n如有任何有關問卷上的問題，請洽智商系系辦!"
+
     var form = FormApp.create(data[3]+"_"+data[1]+"_"+data[0]).setDescription(descrip);
 
     //問題設置
@@ -234,9 +254,9 @@ function createNewForm(data,FolderId){
 
 /** 
  * 建立所有課程的表單資料
- * @params {Array} data 
+ * @params {Array} data  - 如下
  * data = [開課班級,合開課程班級,課程名稱,開課地點,開課導師]
- * return {Array} 如 [className,classTeacher,classWho,classLoc,classId]
+ * return {Array}  - 如 [className,classTeacher,classWho,classLoc,classId]
  */
 function createAllClass(data){
   // 資料處理
@@ -273,6 +293,12 @@ function createAllClass(data){
  * 生成各課程表單後最後放入Word 
  * 
  * 所有課數：data[0].length
+ * 
+ * @param {Integer} step -  生成表單要分成幾步驟
+ * @param {String} folderId -  資料夾ID
+ * @param {Array} data -  表單的資訊
+ * 
+ * return null 
  */
 function createForm(step,folderId,data){
   let urls = [] ; let num , end
@@ -285,7 +311,7 @@ function createForm(step,folderId,data){
   }
   // 執行表單生成並儲存表單連結
   for ( let i = num ; i <= end ; i++){
-    tmp_data = [data[0][i],data[2][i],data[1][i],data[4][i]]
+    tmp_data = [data[0][i],data[2][i],data[1][i],data[4][i],data[5][i]]
     let url = createNewForm(tmp_data,folderId)
     urls.push(url)
   }
