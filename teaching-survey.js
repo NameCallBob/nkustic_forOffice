@@ -259,8 +259,19 @@ function createNewForm(data,FolderId){
  * return {Array}  - 如 [className,classTeacher,classWho,classLoc,classId]
  */
 function createAllClass(data){
+
+  /**
+   * 對於有相同名稱的課程進行判斷是否生成表單
+   * @param {Array} 
+   */
+  function dealSameNameLesson(){
+    // 先針對將有合併班級的課程
+  }
   // 資料處理
-  const no = ["服務學習","體育","實務專題","實習","中文閱讀與表達"]
+
+  // 在這裡填寫不要生成的課程
+  const no = ["服務學習","體育","實務專題","實習","中文閱讀與表達","服務設計與企劃執行"
+  ]
   //變數;className:課程名稱、classTeacher:授課老師、classLoc:上課地點、classWho:授課班級
   let className = new Array() ; let classTeacher = new Array() ; let classLoc = new Array() ; let classWho = new Array() ; let classId = new Array();
   /**確認字串是否含某些字 */
@@ -274,15 +285,20 @@ function createAllClass(data){
       continue
     }
     else{
-    if (data[1][i].length != 0 && data[1][i][0] != ""){
-      //若有合開班級，要將其班級合併
-      res_class = data[0][i][0]+"、"+data[1][i][0]
-    }
-    else{
-      res_class = data[0][i][0]
-    }
+      if (data[1][i].length != 0 && data[1][i][0] != ""){
+        //若有合開班級，要將其班級合併
+        res_class = data[0][i][0]+"、"+data[1][i][0]
+      }
+      else{
+        res_class = data[0][i][0]
+      }
     className.push(data[2][i][0]) ; classTeacher.push(data[4][i][0]) ; classWho.push(res_class) ; classLoc.push(data[3][i][0]);classId.push(data[5][i][0])
-    Logger.log ("第"+i+"堂課，編號"+data[5][i][0]+"，名稱:"+data[2][i][0]+"，授課班級:"+res_class+"，開課教授:"+data[4][i][0]+"，位置:"+data[3][i][0]+"。")
+    Logger.log ("第"+i+"堂課，\
+      編號"+data[5][i][0]+"，\
+      名稱:"+data[2][i][0]+"，\
+      授課班級:"+res_class+"，\
+      開課教授:"+data[4][i][0]+"，\
+      位置:"+data[3][i][0]+"。")
     }
 
   }
