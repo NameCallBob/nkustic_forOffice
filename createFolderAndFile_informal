@@ -1,0 +1,302 @@
+/**
+ * Copyright (c) 彬彬 2024
+ * All rights reserved.
+ * 
+ * Created by: 彬彬
+ * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
+ */
+
+# 該電子郵件要用在nkustic2019上面
+
+/**
+ * 主執行
+ * 
+ * 設計思路：
+ * 1.使用者輸入學年度及班級名稱
+ * 2.找到特定資料夾ID
+ * 3.讀取新生名單
+ * 4.建立學生非正式課程資料夾跟文件
+ * 5.將雲端連結跟email儲存在一個試算表中（會放在跟非正式課程的目錄）
+ * 
+ */
+function main() {
+  // 使用者操作地方
+  // year s
+  let year = "113" ; 
+  let className = "甲"
+  // 找尋或創建目標資料夾
+  let folderIds = findOrCreateTargetFolder(year)
+  // 讀取試算表資料
+  let excelData = getStudentDataFromExcel(
+    folderIds[0],
+    className
+  )
+
+  let linkAndEmailData = createStudentFolderAndCreateStudentFile(
+    folderIds[1],
+    folderIds[0],
+    excelData
+  )
+  // 儲存連結
+  createSpreadsheetWithStudentDataInFolder(
+  excelData,
+  linkAndEmailData,
+  folderIds[0],
+  className
+  )
+}
+
+/**
+ * 創建或找尋是否有新資料夾，尋找是否有新學年度的非正式課程資料夾
+ * 
+ * @param year 學年度
+ * 
+ * return [
+ * 非正式護照存放地點資料夾ID,
+ * 該目標資料夾ID
+ * ]
+ */
+function findOrCreateTargetFolder(year) {
+
+  try {
+    // 資料夾名稱
+    let parentFolderName = "智商系日四技【非正式課程學習護照】";
+    let subFolderName = "日四技_"+year+"學年度入學";
+
+    var parentFolder = DriveApp.getFoldersByName(parentFolderName)
+    if (!parentFolder.hasNext()) {
+      throw new Error('未找到名為'+parentFolderName+'的資料夾');
+    }
+    // 去下一個
+    parentFolder = parentFolder.next()
+
+    var subFolder = parentFolder.getFoldersByName(subFolderName);
+    if (!subFolder.hasNext()) {
+      // 若無，則建立資料夾
+      subFolder = parentFolder.createFolder(subFolderName);
+    }
+    else{
+      subFolder = subFolder.next()
+    }
+    
+    
+    return [
+      parentFolder.getId(),
+      subFolder.getId()
+    ];
+
+  } catch (error) {
+    throw new Error('建立資料夾以及查詢特定資料夾時出現錯誤: ' + error.message);
+  }
+
+}
+
+/**
+ * 取得助理給予的學生資料
+ * 會找尋"學生名單“這個試算表裡面的資料
+ * NOTE:要確保試算表中資料連續且無任何空值，若有要先進行處理
+ * @param parentfolderId 非正式護照存放地點資料夾ID
+ * 
+ * return Objects
+ */
+function getStudentDataFromExcel(parentFolderId,className){
+
+  // 根據名稱尋找指定資料夾內的 Google 試算表
+  function findSpreadsheetByName(name, folderId) {
+
+    var folder = DriveApp.getFolderById(folderId);
+    var files = folder.getFilesByName(name);
+
+    while (files.hasNext()) {
+      var file = files.next();
+      
+      // 如果找到的是 Google 試算表
+      if (file.getMimeType() === MimeType.GOOGLE_SHEETS) {
+        return SpreadsheetApp.openById(file.getId());
+      }
+
+      // 如果找到的是 Excel 檔案，則轉換為 Google 試算表
+    if (file.getMimeType() === MimeType.MICROSOFT_EXCEL) {
+      throw new Error(
+        "因格式問題，請先將此檔案轉為Google試算表，在進行程式運行，步驟：進入試算表->檔案->轉為Google試算表．之後就可運行．"
+      )
+    }
+    }
+
+    return null; // 如果找不到符合條件的檔案
+  }
+
+  try {
+      // 尋找資料夾內是否有名為 "學生名單" 的 Google 試算表
+      var spreadsheet = findSpreadsheetByName("新生名單", parentFolderId);
+      if (!spreadsheet) {
+        throw new Error('未找到名為 "新生名單" 的試算表');
+      }
+
+      // 取得試算表的第一個工作表
+      var sheet = spreadsheet.getSheets()[0];
+
+      // 取得A, C, D欄第二行到最後一行有值的範圍
+      var lastRow = sheet.getLastRow();
+      if (lastRow < 2) {
+        throw new Error('試算表中沒有足夠的資料');
+      }
+
+      // 取得A欄第二行到最後一行
+      var dataA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      // 取得C欄第二行到最後一行
+      var dataC = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+      // 取得D欄第二行到最後一行
+      var dataD = sheet.getRange(2, 4, lastRow - 1, 1).getValues();
+
+      // 先確認資料量是否相同
+      if (dataA.length === dataC.length === dataD.length){
+          throw new Error(`\
+          試算表姓名(${dataD.length})、班級(${dataA.length})、學號(${dataC.length})數量不相同\
+          `)
+      }
+
+      // 將資料合併為一個陣列
+      var result = {
+        className:[],
+        name:[],
+        studentNumber:[]
+      };
+      for (var i = 0; i < dataA.length; i++) {
+        // 將 甲乙班資料分開
+        if (dataA[i][0].includes(className)){
+          result.className.push(
+            dataA[i][0]
+          )
+          result.name.push(
+            dataD[i][0]
+          )
+          result.studentNumber.push(
+            dataC[i][0]
+          )
+        }
+      }
+      Logger.log("GoogleAppScript 最大處理時間為5分鐘，若發現數量大於50，可以調整學生名單控制數量，以免運行到一半終止")
+      Logger.log("數量為"+result.studentNumber.length+"，程式將在5秒後運行，請在此時間終止")
+      Utilities.sleep(5000)
+      return result;
+
+    } catch (error) {
+      throw new Error('試算表處理發生錯誤: ' + error.message);
+    }
+}
+
+/**
+ * 創建使用者資料夾及非正式課程檔案
+ */
+function createStudentFolderAndCreateStudentFile(
+  parentFolderId,
+  templateFolderId,
+  dataArray
+) {
+  let studentShareLink = []
+  let studentEmailList = []
+    // 在指定資料夾中尋找名為 templateName 的 Google 文檔
+    function findTemplateByName(templateName, folderId) {
+        var folder = DriveApp.getFolderById(folderId);
+        var files = folder.getFilesByName(templateName);
+
+        while (files.hasNext()) {
+            var file = files.next();
+            if (file.getMimeType() === MimeType.GOOGLE_DOCS) {
+                return file;
+            }
+        }
+
+        return null;
+    }
+
+    try {
+        // 在 templateFolderId 資料夾中尋找 "非正式課程模板"
+        var templateFile = findTemplateByName("非正式課程模板", templateFolderId);
+        if (!templateFile) {
+            throw new Error('未找到名為 "非正式課程模板" 的文檔');
+        }
+
+        // 讀取模板文件ID
+        var templateFileId = templateFile.getId();
+
+        // 遍歷數據，為每筆資料創建一個新的資料夾和文件
+        for (var i = 0; i < dataArray.name.length; i++) {
+            var dataA = dataArray.className[i];  // students_className
+            var dataC = dataArray.studentNumber[i];  // students_number
+            var dataD = dataArray.name[i];  // students_name
+            var studentEmail = dataC + "@nkust.edu.tw"
+
+            // 1. 為學生創建一個資料夾 (用學生姓名或學號命名)
+            var studentFolderName = dataC + " " + dataD; // 資料夾名：學號_姓名
+            var studentFolder = DriveApp.getFolderById(parentFolderId).createFolder(studentFolderName);
+            Logger.log("已創建資料夾: " + studentFolderName);
+            studentFolder.addEditor(studentEmail);
+            Logger.log("已為 " + studentEmail + " 賦予資料夾 " + studentFolderName + " 的編輯權限");
+
+            // 2. 使用模板文件創建新的 Google 文檔
+            var newDocName = dataC + " " + dataD; // 使用 dataC + dataD 作為文檔名
+            var newDocFile = DriveApp.getFileById(templateFileId).makeCopy(newDocName, studentFolder); // 在學生的資料夾中複製模板文件
+            
+            var newDoc = DocumentApp.openById(newDocFile.getId()); // 打開新文檔
+            var body = newDoc.getBody(); // 取得文檔的正文
+            
+            // 3. 替換模板中的佔位符
+            body.replaceText("{students_className}", dataA);
+            body.replaceText("{students_number}", dataC);
+            body.replaceText("{students_name}", dataD);
+
+            newDoc.saveAndClose(); // 保存並關閉文檔
+
+            Logger.log("已在資料夾 " + studentFolderName + " 中創建文件: " + newDocName);
+
+            studentShareLink.push(
+              studentFolder.getUrl()
+            )
+
+            studentEmailList.push(
+              studentEmail
+            )
+        }
+
+        return [studentEmailList,studentShareLink]
+
+    } catch (error) {
+        Logger.log('創建文檔時出現錯誤: ' + error.message);
+    }
+}
+
+function createSpreadsheetWithStudentDataInFolder(data1,data2,folderId,className) {
+  // 4 個列表的數據
+  var studentNumberList = data1.studentNumber; // 學生編號列表
+  var studentNameList = data1.name; // 學生姓名列表
+  var emailList = data2[0]; // 學生郵件列表
+  var shareLinkList = data2[1]
+  // 創建新的試算表
+  var spreadsheet = SpreadsheetApp.create("非正式課程寄信名單_班級:"+className);
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // 設置表頭
+  sheet.getRange(1, 1).setValue("學號");
+  sheet.getRange(1, 2).setValue("姓名");
+  sheet.getRange(1, 3).setValue("郵件地址");
+  sheet.getRange(1, 4).setValue("分享連結");
+  
+
+  // 將數據寫入試算表
+  for (var i = 0; i < data2[0].length; i++) {
+    sheet.getRange(i + 2, 1).setValue(studentNumberList[i]); // 學號
+    sheet.getRange(i + 2, 2).setValue(studentNameList[i]); // 姓名
+    sheet.getRange(i + 2, 3).setValue(emailList[i]); // 郵件地址
+    sheet.getRange(i + 2, 4).setValue(shareLinkList[i]); // 分享連結
+  }
+
+  // 使用 DriveApp 移動試算表到特定資料夾
+  var file = DriveApp.getFileById(spreadsheet.getId()); // 獲取試算表文件
+  var folder = DriveApp.getFolderById(folderId); // 獲取指定資料夾
+  file.moveTo(folder); // 將試算表移動到指定資料夾
+
+  Logger.log('試算表已創建並移動到指定資料夾，鏈接為：' + spreadsheet.getUrl());
+}
+
