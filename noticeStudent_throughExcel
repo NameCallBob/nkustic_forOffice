@@ -1,0 +1,107 @@
+/**
+ * Copyright (c) 彬彬 2024
+ * All rights reserved.
+ * 
+ * Created by: 彬彬
+ * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
+ */
+
+# 該檔案用於vhoffice（公務信箱通知學生）
+
+/**
+ * 主執行
+ */
+function main(){
+
+  // 請先輸入檔案名稱（放在雲端第一層）
+  let fileName= ""
+
+  id = getSpreadsheetIdByName(fileName)
+  sendEmailsFromSpreadsheet(id)
+}
+
+/**
+ * 依照試算表ID
+ * 查詢C、D欄並自動寄送『非正式課程』主旨及信件內容
+ * 
+ * @param spreadsheetId 試算表ID
+ * 
+ * return null
+ */
+function sendEmailsFromSpreadsheet(spreadsheetId) {
+  // 打開指定的試算表
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = spreadsheet.getActiveSheet();
+  
+  // 獲取最後一行的數據
+  var lastRow = sheet.getLastRow();
+  
+  // 取得 C 欄（電子郵件）和 D 欄（分享網址）的範圍（假設從第 2 行開始）
+  var emails = sheet.getRange(2, 3, lastRow - 1, 1).getValues(); // C 欄
+  var links = sheet.getRange(2, 4, lastRow - 1, 1).getValues(); // D 欄
+
+  // 迴圈遍歷每一行並發送郵件
+  for (var i = 0; i < names.length; i++) {
+    var link = links[i][0]; // 取得名字
+    var email = emails[i][0]; // 取得郵件地址
+
+    if (email) { // 確保郵件地址不為空
+      // 設置郵件主題與內容
+        var subject = "【智商系系辦】檢送日四技『非正式課程學習護照』雲端連結更新,請查收!";
+        var message = "大一同學,您好:\n\n" +
+                      "依課規表規定：畢業前必需取得8次非正式課程方得畢業。\n" +
+                      "檢送您個人「非正式課程學習護照」雲端連結如下:\n" +
+                       link + "\n" +
+                      "請自行登錄紀錄至雲端,系辦會定ㄌ期進行查核!\n\n" +
+                      "---------------------------------------------------------\n\n" +
+                      "國立高雄科技大學(建工/燕巢) 智慧商務系\n\n" +
+                      "(原名資訊管理系經育部核定於108學年度起更名)\n\n" +
+                      "E-mail: vhoffice01@nkust.edu.tw\n\n" +
+                      "(TEL) 07-3814526轉17501(建工系辦-西302室)\n\n" +
+                      "轉17551(燕巢系辦-管一MA301室)\n\n" +
+                      "校址: 80778 高雄市三民區建工路415號(建工校區)\n\n" +
+                      "82444 高雄市燕巢區深中路58號 (燕巢校區)\n\n" +
+                      "---------------------------------------------------------";
+
+
+      // 發送郵件
+      GmailApp.sendEmail(email, subject, message);
+      Logger.log("已發送郵件給: " + email + "");
+    } else {
+      Logger.log("跳過: " + name + "，因為郵件地址為空");
+    }
+  }
+}
+
+/**
+ * 依照試算表名稱在第一層進行尋找
+ * 
+ * @param spreadsheetName 試算表名稱
+ * 
+ * return 試算表ID （若您輸入的是試算表名稱）
+ */
+function getSpreadsheetIdByName(spreadsheetName) {
+  // 搜尋名稱符合的檔案
+  var files = DriveApp.getFilesByName(spreadsheetName);
+  
+  // 檢查是否找到符合名稱的檔案
+  if (!files.hasNext()) {
+    throw new Error("未找到名為 " + spreadsheetName + " 的檔案，請確認檔案是否存在於雲端硬碟中。");
+  }
+  
+  var file = files.next(); // 取得第一個檔案
+  
+  // 檢查是否為 Google 試算表
+  if (file.getMimeType() !== MimeType.GOOGLE_SHEETS) {
+    throw new Error("找到的檔案不是 Google 試算表類型，請確認檔案格式。");
+  }
+  
+  // 檢查是否有重複檔案
+  if (files.hasNext()) {
+    throw new Error("找到多個名為 " + spreadsheetName + " 的檔案，請確保只有一個該名稱的檔案。");
+  }
+
+  // 回傳符合條件的試算表 ID
+  return file.getId();
+}
+
