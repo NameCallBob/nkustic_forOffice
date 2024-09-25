@@ -6,7 +6,42 @@
  * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
  */
 
-# 該電子郵件要用在nkustic2019上面
+// 此腳本要由nkustic2019@gmail.com運行!
+
+// －－－使用說明－－－
+// 
+// 　本腳本執行前提：
+// 
+// 1.將會在第一層資料夾"智商系日四技【非正式課程學習護照】"執行動作，請不要隨便移動或更改，若有，請詢問相關維護人員(彬彬或其他)
+// 
+// 2.將新的學生資料(一定要用Google試算表)，若發現無法正常運行，可能是因為沒有轉檔(Excel檔)而無法運行。
+// 若要轉檔，請點擊進入檔案，在上方功能列，點選檔案->儲存為Google試算表
+// 
+// －－－如何判斷？－－
+// 
+// 　檔案用Google試算表打開，看看檔案標題旁邊有沒有.xlsx，有就是Excel，反之，就是Google試算表。
+// 
+// －－－－－－－－－－
+
+
+// －－－使用方式－－－
+// 
+// 1.更換舊的學生名單且要注意欄位位置!
+// 
+// -> 試算表  格式如下
+// -> A欄:「　班級　」
+// -> B欄:「　流水號或空白　」
+// -> C欄:「　學號　」
+// -> D欄:「　姓名　」
+// 
+// 2.點選執行，且旁邊要執行init
+// 
+// 　！！重要！！
+// 　一定要取代原本的舊的新生名單之後再執行腳本，否則會生成舊名單的非正式課程且生成就會通知分享連結，所以要小心!避免不必要的誤會。
+// 
+// －－－－－－－－－－ 
+// 
+// －－使用說明結束，以下為程式碼－－
 
 /**
  * 主執行
@@ -19,11 +54,18 @@
  * 5.將雲端連結跟email儲存在一個試算表中（會放在跟非正式課程的目錄）
  * 
  */
-function main() {
+function startProject_nkustic2019() {
   // 使用者操作地方
-  // year s
+
+  // year ->學年度
   let year = "113" ; 
-  let className = "甲"
+  
+  // className 為 班級名稱，記得更改完之後按下儲存(ctrl + S)，在執行。
+  // let className = "甲"
+  let className = "乙"
+  
+  // 以下是邏輯，使用者不要動的地方。
+  
   // 找尋或創建目標資料夾
   let folderIds = findOrCreateTargetFolder(year)
   // 讀取試算表資料
@@ -42,7 +84,8 @@ function main() {
   excelData,
   linkAndEmailData,
   folderIds[0],
-  className
+  className,
+  year
   )
 }
 
@@ -267,14 +310,14 @@ function createStudentFolderAndCreateStudentFile(
     }
 }
 
-function createSpreadsheetWithStudentDataInFolder(data1,data2,folderId,className) {
+function createSpreadsheetWithStudentDataInFolder(data1,data2,folderId,className,year) {
   // 4 個列表的數據
   var studentNumberList = data1.studentNumber; // 學生編號列表
   var studentNameList = data1.name; // 學生姓名列表
   var emailList = data2[0]; // 學生郵件列表
   var shareLinkList = data2[1]
   // 創建新的試算表
-  var spreadsheet = SpreadsheetApp.create("非正式課程寄信名單_班級:"+className);
+  var spreadsheet = SpreadsheetApp.create(year +"非正式課程寄信名單_班級:"+className);
   var sheet = spreadsheet.getActiveSheet();
   
   // 設置表頭
