@@ -6,18 +6,29 @@
  * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
  */
 
-# 該檔案用於vhoffice（公務信箱通知學生）
+// 由於寄信都是用公務信箱寄信。請使用vhoffice01@nkust.edu.tw啟動本腳本!
 
 /**
  * 主執行
  */
-function main(){
+function startProject_vhoffice01(){
 
   // 請先輸入檔案名稱（放在雲端第一層）
-  let fileName= ""
+  // 
+  // 先前產生的檔案名子如下
+  // 
+  // 格式：（學年度）非正式課程寄信名單_班級:（班級名稱）
+  // 注意!!!!!!! 半形跟全形有分喔，一定要百分之百相同
+  // 
+  // -> 範例如下
+  // 　甲班：113非正式課程寄信名單_班級_甲
+  // 　乙班：113非正式課程寄信名單_班級_乙
+
+  let fileName= "113非正式課程寄信名單_班級_乙"
 
   id = getSpreadsheetIdByName(fileName)
   sendEmailsFromSpreadsheet(id)
+
 }
 
 /**
@@ -41,7 +52,7 @@ function sendEmailsFromSpreadsheet(spreadsheetId) {
   var links = sheet.getRange(2, 4, lastRow - 1, 1).getValues(); // D 欄
 
   // 迴圈遍歷每一行並發送郵件
-  for (var i = 0; i < names.length; i++) {
+  for (var i = 0; i < links.length; i++) {
     var link = links[i][0]; // 取得名字
     var email = emails[i][0]; // 取得郵件地址
 
@@ -52,7 +63,7 @@ function sendEmailsFromSpreadsheet(spreadsheetId) {
                       "依課規表規定：畢業前必需取得8次非正式課程方得畢業。\n" +
                       "檢送您個人「非正式課程學習護照」雲端連結如下:\n" +
                        link + "\n" +
-                      "請自行登錄紀錄至雲端,系辦會定ㄌ期進行查核!\n\n" +
+                      "請自行登錄紀錄至雲端,系辦會定期進行查核!\n\n" +
                       "---------------------------------------------------------\n\n" +
                       "國立高雄科技大學(建工/燕巢) 智慧商務系\n\n" +
                       "(原名資訊管理系經育部核定於108學年度起更名)\n\n" +
