@@ -218,8 +218,9 @@ function createNewForm(data,FolderId){
     var folder = DriveApp.getFolderById(folderId);
     // 自定義表單簡介
     let descrip = "同學您好!\n為增進良好的教學體驗，請填寫教學意見調查表!\
-                  提供您對於本堂課的想法，請如實填寫且避免攻擊性詞語，\
-                  \n感謝您的填寫，以下是該堂課的基本資訊。\
+                  提供您對於本堂課的想法，\
+                  \n請如實填寫且避免攻擊性詞語，\
+                  \n以下是該堂課的基本資訊。\
                   \n授課地點："+data[4]+"\
                   \n課程編號："+data[3]+"\
                   \n課程名稱："+data[0]+"\
@@ -272,7 +273,7 @@ function createAllClass(data){
   // 在這裡填寫不要生成的課程
   const no = ["服務學習","體育","實務專題","實習","中文閱讀與表達","服務設計與企劃執行"
   ]
-  //變數;className:課程名稱、classTeacher:授課老師、classLoc:上課地點、classWho:授課班級
+  //變數;className:課程名稱、classTeacher:授課老師、classLoc:上課地點、classWho:授課班級、classId:課程編號、classTime:上課時間
   let className = new Array() ; let classTeacher = new Array() ; let classLoc = new Array() ; let classWho = new Array() ; let classId = new Array();
   /**確認字串是否含某些字 */
   function checkIfIncludesAnyElement(word, array) {
@@ -317,18 +318,28 @@ function createAllClass(data){
  * return null 
  */
 function createForm(step,folderId,data){
+
   let urls = [] ; let num , end
+
   // 由於有函數執行上限，設為兩個step
+
   if (step == 1){
-    num = 0 ; end = data[0].length/2
+    num = 0 ; end = Math.ceil(data[0].length/2)
   }
   else if (step == 2){
-    num = data[0].length/2+1 ; end = data[0].length-1
+    num = Math.ceil(data[0].length/2+1) ; end = Math.ceil(data[0].length-1)
   }
+  Logger.log("本次運行從"+num+"開始，於"+end+"結束!")
+
+  let tmp_data
   // 執行表單生成並儲存表單連結
   for ( let i = num ; i <= end ; i++){
-    tmp_data = [data[0][i],data[2][i],data[1][i],data[4][i],data[5][i]]
+  
+    tmp_data = [
+      data[0][i],data[2][i],data[1][i],data[4][i],data[3][i]
+    ]
     let url = createNewForm(tmp_data,folderId)
+    
     urls.push(url)
   }
   Logger.log("表單建置完畢!開始QrCode生成");
@@ -343,7 +354,8 @@ function createForm(step,folderId,data){
     }
     // Word內容
     body.appendParagraph(course).setHeading(DocumentApp.ParagraphHeading.HEADING1);   
-    body.appendParagraph(data[2][i]).setHeading(DocumentApp.ParagraphHeading.HEADING2) 
+    body.appendParagraph(data[2][i]).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    body.appendParagraph(data[3][i]).setHeading(DocumentApp.ParagraphHeading.HEADING3)  
     try{
     //第一個生成QrCode的服務
     var imageUrl = "https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=" + encodeURIComponent(urls[urlnum]);
@@ -365,21 +377,21 @@ function createForm(step,folderId,data){
  * 邏輯流程：建立新學年度資料夾 -> 讀取課程資料 -> 建立表單 -> 建立Word 
  * 基於GoogleBot只有6分鐘的處理時間，所以分成兩步驟進行生成
  */
-function init(){
-  try{
-  var year = "113(1)" ; step = 2
+function run_GoogleFormCreator(){
+  // try{
+  var year = "113(1)" ; step = 1
   Logger.log("開始")
-  folderId = createParentFolder("系上表單及文件",year)
+  let folderId = createParentFolder("系上表單及文件",year)
   Logger.log("讀取課程資料")
-  data = getClassName(folderId[1])
-  Logger.log("讀取成功，開始建置表單")
+  let data = getClassName(folderId[1])
+  Logger.log("讀取成功，開始整理，如下!")
   data = createAllClass(data)
   Logger.log("開始建置表單")
   createForm(step,folderId[2],data)
   Logger.log("結束，授課意見調查整體生成完畢")
 
-  }catch(error){
-    throw Error("shit!出問題摟，錯誤訊息是"+error)
-  }
+  // }catch(error){
+  //   throw Error("shit!出問題摟，錯誤訊息是"+error)
+  // }
   
 }
