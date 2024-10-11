@@ -143,7 +143,7 @@ function deal_formInfo(id){
   function getClassInfo(Content){
 
     // 使用正規表達式來擷取授課班級和授課老師
-    var regexClassLoc = /授課教室：(.+?)\n/;
+    var regexClassLoc = /授課地點：(.+?)\n/;
     var regexForWho = /授課班級：(.+?)\n/;
     var regexTeacher = /授課老師：(.+?)\n/;
     var regexLessonName = /課程名稱：(.+?)\n/;
@@ -525,14 +525,14 @@ function output_AS_Word(result_info,formFolderId,output_type){
 function init(){
 
   // 填寫學年和學期 (您要修改的地方!)
-  let schoolyear = "112(2)"
+  let schoolyear = "113(1)"
 
   // 要輸出個別老師還是全部? (您要修改的地方!)
   // 個別老師 -> "individual"
   // 全部    -> "all"
   // 兩者的檔案都需要 -> "both"
 
-  let output_type = "all"
+  let output_type = "both"
 
   // 先取得該學年或學期的授課意見調查表的位置
   let targetFolderId = getFolderloc(
