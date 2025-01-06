@@ -1,0 +1,209 @@
+/**
+ * Copyright (c) 彬彬 2024
+ * All rights reserved.
+ * 
+ * Created by: 彬彬
+ * Contact: C110156220@nkust.edu.tw / robin92062574@gmail.com
+ */
+
+// 此腳本要由nkustic2019@gmail.com運行!
+
+function startCreateRecord() {
+
+  // -------------您要填寫的地方----------------
+
+  // 輸入學年度
+  let year = "110"
+
+  // 需輸入的內容，請依照順序填寫
+  let table_content = [
+    "本系系周會",
+    "113-1 智慧商務系系周會",
+    "113.10.16",
+    ""
+  ]
+  // 舉例：
+  // let table_content = [
+  //   "本系系周會",
+  //   "113-1 智慧商務系系周會",
+  //   "113.10.15",
+  //   ""
+  // ]
+  // -----------------------------------------
+
+
+  // 找到目標資料夾
+  let folderId = findOrCreateTargetFolder(year)
+  // 輸出所有資料夾以及裡面Google文件的ID
+  let data = listAllSubfolderNamesAndDocId(folderId[1])
+
+  checkingStudentGoogleDoc(data , table_content)
+  
+}
+
+/**
+ * 根據資料夾 ID 列出該資料夾下的所有子資料夾名稱，並輸出每個資料夾中的 Google 文件的 ID
+ * 
+ * @param folderId 資料夾 ID
+ * 
+ * @return {Object} 包含所有子資料夾名稱及其 Google 文件的 ID 和分享連結
+ */
+function listAllSubfolderNamesAndDocId(folderId) {
+  try {
+    // 根據資料夾 ID 取得主資料夾
+    var folder = DriveApp.getFolderById(folderId);
+    
+    // 取得主資料夾下的所有子資料夾
+    var subfolders = folder.getFolders();
+    
+    // 用來儲存子資料夾名稱、Google 文件 ID 和分享連結的陣列
+    var folderNames = [], docIds = [], folderShareLinks = [];
+    
+    // 遍歷所有子資料夾
+    while (subfolders.hasNext()) {
+      var subfolder = subfolders.next();
+      folderNames.push(subfolder.getName());
+      folderShareLinks.push(subfolder.getUrl());
+
+      // 取得該子資料夾下的所有 Google 文件
+      var files = subfolder.getFilesByType(MimeType.GOOGLE_DOCS);
+      
+      // 檢查該子資料夾是否有 Google 文件
+      if (files.hasNext()) {
+        var file = files.next(); // 取得第一個 Google 文件
+        docIds.push(file.getId());
+        Logger.log("子資料夾: " + subfolder.getName() + " 中的 Google 文件 ID: " + file.getId());
+      } else {
+        Logger.log("子資料夾: " + subfolder.getName() + " 中沒有 Google 文件。");
+        docIds.push(null); // 若無文件，則記錄 null
+      }
+    }
+
+
+    // 回傳子資料夾名稱、Google 文件 ID 和分享連結
+    return {
+      folderNames: folderNames,
+      docIds: docIds,
+      shareLinks: folderShareLinks
+    };
+    
+  } catch (error) {
+    throw new Error("列出子資料夾名稱或取得 Google 文件 ID 時發生錯誤: " + error.message);
+  }
+}
+
+function checkAndFillOrAddRow(googleDocId, valuesToFill) {
+  try {
+    // 開啟 Google 文件
+    var doc = DocumentApp.openById(googleDocId);
+    var body = doc.getBody();
+    var tables = body.getTables();
+
+    if (tables.length === 0) {
+      Logger.log("文件中沒有找到表格。");
+      return;
+    }
+
+    var table = tables[0]; // 假設目標表格是第一個表格
+
+    // 檢查第 6 列及之後的列
+    for (var rowIndex = 5; rowIndex < table.getNumRows(); rowIndex++) {
+      var row = table.getRow(rowIndex);
+      var isRowEmpty = true;
+
+      // 確認該列是否所有欄位為空
+      for (var colIndex = 1; colIndex < row.getNumCells(); colIndex++) {
+        if (row.getCell(colIndex).getText().trim() !== "") {
+          isRowEmpty = false;
+          break;
+        }
+      }
+
+      // 如果找到空列，填入值並結束函數
+      if (isRowEmpty) {
+        // 自動計算序號 (上一列的序號 + 1)
+        var previousRow = table.getRow(rowIndex - 1);
+        var previousSerial = parseInt(previousRow.getCell(0).getText().trim()) || 0;
+        row.getCell(0).setText((previousSerial + 1).toString());
+
+        // 填入其餘值
+        for (var i = 0; i < valuesToFill.length; i++) {
+          row.getCell(i + 1).setText(valuesToFill[i]);
+        }
+        return;
+      }
+    }
+
+    var newRow = table.appendTableRow();
+
+    // 自動計算序號 (最後一列的序號 + 1)
+    var lastRow = table.getRow(table.getNumRows() - 2); // 倒數第二列是原表格的最後一列
+    var lastSerial = parseInt(lastRow.getCell(0).getText().trim()) || 0;
+    newRow.appendTableCell((lastSerial + 1).toString());
+
+    // 填入其餘值
+    for (var i = 0; i < valuesToFill.length; i++) {
+      newRow.appendTableCell(valuesToFill[i]);
+    }
+  } catch (error) {
+    Logger.log("檢查和填充表格時發生錯誤: " + error.message);
+  }
+}
+
+/**
+ * 創建或找尋是否有新資料夾，尋找是否有新學年度的非正式課程資料夾
+ * 
+ * @param year 學年度
+ * 
+ * return [
+ * 非正式課程存放地點資料夾ID,
+ * 該目標資料夾ID
+ * ]
+ */
+function findOrCreateTargetFolder(year) {
+
+  try {
+    // 資料夾名稱
+    let parentFolderName = "智商系日四技【非正式課程學習護照】";
+    let subFolderName = "日四技_"+year+"學年度入學";
+
+    var parentFolder = DriveApp.getFoldersByName(parentFolderName)
+    if (!parentFolder.hasNext()) {
+      throw new Error('未找到名為'+parentFolderName+'的資料夾');
+    }
+    // 去下一個
+    parentFolder = parentFolder.next()
+
+    var subFolder = parentFolder.getFoldersByName(subFolderName);
+    if (!subFolder.hasNext()) {
+      // 若無，則建立資料夾
+      subFolder = parentFolder.createFolder(subFolderName);
+    }
+    else{
+      subFolder = subFolder.next()
+    }
+  
+    return [
+      parentFolder.getId(),
+      subFolder.getId()
+    ];
+
+  } catch (error) {
+    throw new Error('建立資料夾以及查詢特定資料夾時出現錯誤: ' + error.message);
+  }
+}
+
+/**
+ * 依照先前統計到的陣列
+ * 用for迴圈跑
+ */
+function checkingStudentGoogleDoc(folderAndDoc , valueArray){
+  let folderName = folderAndDoc.folderNames
+  let docsId = folderAndDoc.docIds
+
+  for (let i = 0 ; i < folderName.length ; i++ ){
+    checkAndFillOrAddRow(docsId[i],valueArray)
+  }
+
+  return;
+}
