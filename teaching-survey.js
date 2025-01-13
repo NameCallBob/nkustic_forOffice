@@ -208,17 +208,18 @@ function createNewForm(data,FolderId){
      * @param {String} title - 題目名稱
      */
     function createScaleQuestion(form, title) {
-      var item = form.addMultipleChoiceItem();
-      item.setTitle(title).setChoiceValues(["非常同意", "同意", "普通", "不同意", "非常不同意"]);
-      item.setRequired(true)
+      var item = form.addScaleItem();
+      item.setTitle(title)
+          .setBounds(1, 5) // 1 到 5 分
+          .setLabels("非常不同意", "非常同意"); // 左右端點標籤
+      item.setRequired(true);
     }
-
 
     // 在指定的文件夾中建立一個新的Google表單
     var folder = DriveApp.getFolderById(folderId);
     // 自定義表單簡介
-    let descrip = "同學您好!\n為增進良好的教學體驗，請填寫教學意見調查表!\
-                  提供您對於本堂課的想法，\
+    let descrip = "同學您好!\n為增進良好的教學體驗，請協助填寫「期中」授課意見調查表!\
+                  \n提供您對於本堂課的想法，\
                   \n請如實填寫且避免攻擊性詞語，\
                   \n以下是該堂課的基本資訊。\
                   \n授課地點："+data[4]+"\
@@ -271,7 +272,8 @@ function createAllClass(data){
   // 資料處理
 
   // 在這裡填寫不要生成的課程
-  const no = ["服務學習","體育","實務專題","實習","中文閱讀與表達","服務設計與企劃執行"
+  const no = [
+    "服務學習","體育","實務專題","實習","中文閱讀與表達","服務設計與企劃執行"
   ]
   //變數;className:課程名稱、classTeacher:授課老師、classLoc:上課地點、classWho:授課班級、classId:課程編號、classTime:上課時間
   let className = new Array() ; let classTeacher = new Array() ; let classLoc = new Array() ; let classWho = new Array() ; let classId = new Array();
@@ -379,7 +381,7 @@ function createForm(step,folderId,data){
  */
 function run_GoogleFormCreator(){
   // try{
-  var year = "113(1)" ; step = 1
+  var year = "113(2)" ; step = 2
   Logger.log("開始")
   let folderId = createParentFolder("系上表單及文件",year)
   Logger.log("讀取課程資料")
