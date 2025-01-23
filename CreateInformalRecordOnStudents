@@ -134,16 +134,23 @@ function checkAndFillOrAddRow(googleDocId, valuesToFill) {
       }
     }
 
+    // 新增一列
     var newRow = table.appendTableRow();
 
-    // 自動計算序號 (最後一列的序號 + 1)
-    var lastRow = table.getRow(table.getNumRows() - 2); // 倒數第二列是原表格的最後一列
-    var lastSerial = parseInt(lastRow.getCell(0).getText().trim()) || 0;
-    newRow.appendTableCell((lastSerial + 1).toString());
+    try {
+      // 自動計算序號 (最後一列的序號 + 1)
+      var lastRow = table.getRow(table.getNumRows() - 2); // 倒數第二列是原表格的最後一列
+      var lastSerial = parseInt(lastRow.getCell(0).getText().trim()) || 0;
+      newRow.appendTableCell((lastSerial + 1).toString());
 
-    // 填入其餘值
-    for (var i = 0; i < valuesToFill.length; i++) {
-      newRow.appendTableCell(valuesToFill[i]);
+      // 填入其餘值
+      for (var i = 0; i < valuesToFill.length; i++) {
+        newRow.appendTableCell(valuesToFill[i]);
+      }
+    } catch (error) {
+      // 刪除新增加的列以恢復表格狀態
+      table.removeRow(table.getNumRows() - 1);
+      throw new Error("新增行時發生錯誤，已刪除新增的行: " + error.message);
     }
   } catch (error) {
     Logger.log("檢查和填充表格時發生錯誤: " + error.message);
